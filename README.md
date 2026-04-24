@@ -1,58 +1,82 @@
+<div align="center">
+
 # Joyride Studio
 
-**A visual helper for [react-joyride](https://docs.react-joyride.com)** — click real elements in your running app to define tour targets, let the skill inject stable anchors and generate the wired tour file.
+**Click. Capture. Ship.**
 
-Think of it as an _alternative to writing tours by hand with the react-joyride skill + Claude_: same library underneath, same API surface exposed, but with visual authoring, multi-tour routing, design-system-matching UI, positioning-stability guarantees, and viewport-aware mobile overrides layered on top.
+A visual authoring layer on top of [react-joyride](https://github.com/gilbarbara/react-joyride). Click the real elements in your running app — the skill writes the tour.
 
-- Works in any **React + Vite** repo (Next.js planned for v2)
-- Exposes **100 % of react-joyride's options** — nothing is hidden
-- Adds two things Joyride doesn't ship: **positioning stability** (auto-update on scroll/resize/layout-shift/mutation) and **mobile** (viewport-aware overrides)
-- **PRs welcome** — this is an open-source project, see [Contributing](#contributing)
+[![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
+[![Built on react-joyride](https://img.shields.io/badge/built%20on-react--joyride-ff5b9c)](https://github.com/gilbarbara/react-joyride)
+[![Status](https://img.shields.io/badge/status-v0.1.0-green)](./CHANGELOG.md)
+[![Skills CLI](https://img.shields.io/badge/install-npx%20skills%20add-black)](https://github.com/vercel-labs/skills)
+[![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen)](./CONTRIBUTING.md)
 
----
+[Install](#install) · [Why](#why-this-exists) · [How it works](#how-it-works) · [Settings](#settings-tab--full-joyride-control-plus-build-tour-extras) · [Contributing](#contributing) · [Roadmap](./ROADMAP.md)
 
-## Table of contents
+</div>
 
-- [What this skill gives you](#what-this-skill-gives-you)
-- [Who this is for](#who-this-is-for)
-- [How it works (30-second read)](#how-it-works-30-second-read)
-- [Prerequisites](#prerequisites)
-- [Quick start](#quick-start)
-- [Full walkthrough](#full-walkthrough)
-  - [1. `/joyride-studio init` — scaffold the infra](#1-joyride-studio-init--scaffold-the-infra)
-  - [2. `/joyride-studio start` — enable the inspector](#2-joyride-studio-start--enable-the-inspector)
-  - [3. Capture screens with ⌘⇧U](#3-capture-screens-with-u)
-  - [4. `/joyride-studio` — build the tour](#4-joyride-studio--build-the-tour)
-  - [5. Verify in the browser](#5-verify-in-the-browser)
-- [Command reference](#command-reference)
-- [Authoring tours](#authoring-tours)
-  - [Screen metadata](#screen-metadata)
-  - [Step form fields](#step-form-fields)
-  - [Behavior flags](#behavior-flags)
-  - [Media types](#media-types)
-- [Advanced topics](#advanced-topics)
-  - [Multi-tour on the same route](#multi-tour-on-the-same-route)
-  - [Conditional mount: `shouldShow`](#conditional-mount-shouldshow)
-  - [Sub-state transitions: `useTourRefreshOnMount`](#sub-state-transitions-usetourrefreshonmount)
-  - [Auto-start signal: `autoStart`](#auto-start-signal-autostart)
-  - [User identification: `userId`](#user-identification-userid)
-  - [Async auth signals](#async-auth-signals)
-- [Installing in another repo](#installing-in-another-repo)
-- [Troubleshooting](#troubleshooting)
-- [Uninstalling / teardown](#uninstalling--teardown)
-- [Project layout reference](#project-layout-reference)
-- [Contributing](#contributing)
+> **A note on attribution.** This is a tooling layer. The runtime engine, the API, and most of the cleverness belong to [Gil Barbara and the react-joyride contributors](https://github.com/gilbarbara/react-joyride) — react-joyride is itself MIT-licensed open-source software, and Joyride Studio is an independent project, not affiliated with or endorsed by them. If you'd rather hand-write tours, use react-joyride directly. That's also a great answer.
 
 ---
 
-## What this skill gives you
+## Install
 
-Running `/joyride-studio` in any React + Vite repo installs and wires up:
+```bash
+npx skills add parakeet09/joyride-studio
+```
+
+That uses the [`skills` CLI](https://github.com/vercel-labs/skills) to drop the agent into your `.claude/skills/`. Restart Claude Code and `/joyride-studio init` becomes available as a slash command.
+
+> **Project install:** lands in `./.claude/skills/joyride-studio/` (committable, shared with team).
+> **Global install:** `npx skills add parakeet09/joyride-studio -g` lands in `~/.claude/skills/`.
+
+---
+
+## Why this exists
+
+Hand-writing a Joyride tour means hunting for a stable CSS selector, eyeballing where the tooltip should sit, and crossing your fingers when the DOM shifts.
+
+Joyride Studio replaces that loop with three actions:
+
+<table>
+  <tr>
+    <td width="33%" align="center"><img src="./docs/screenshots/capture-pick-screen.png" alt="Pick or create a screen" /></td>
+    <td width="33%" align="center"><img src="./docs/screenshots/step-form-filled.png" alt="Fill in the step form" /></td>
+    <td width="33%" align="center"><img src="./docs/screenshots/tour-step-1.png" alt="The wired tour running in your app" /></td>
+  </tr>
+  <tr>
+    <td align="center"><sub><b>1.</b> Pick a screen, click an element</sub></td>
+    <td align="center"><sub><b>2.</b> Fill in title + body</sub></td>
+    <td align="center"><sub><b>3.</b> Run <code>/joyride-studio</code> — done</sub></td>
+  </tr>
+</table>
+
+The skill takes care of everything else:
+
+| You stop worrying about | Because Joyride Studio handles |
+|---|---|
+| Picking a stable CSS selector | Walks the React fiber, injects a `data-tour-id` into the real JSX |
+| Tooltip looking out of place | Regenerates `TourTooltip` and `TourButton` using your repo's design tokens at `init` |
+| Tooltip drifting from its target | Forwards `floatingOptions.autoUpdate` + an opt-in `MutationObserver` watcher |
+| Tours looking broken on mobile | Viewport-aware overrides: larger beacon, modal placement, sticky-header offset |
+| Wiring multiple tours per route | Built-in registry with `shouldShow` predicates + `useTourRefreshOnMount` |
+| Replay trigger UI | Auto-mounted `?` button with a per-route menu, or roll your own via `useAvailableTours()` |
+
+What Joyride Studio **doesn't** do: change anything about how react-joyride itself works at runtime. Every option react-joyride ships is reachable from the Settings panel; nothing is hidden.
+
+---
+
+## What's in the box
+
+> Heads-up: GitHub auto-generates an outline for this README. Use the **outline** button in the top-right of GitHub's file viewer for full navigation — the hero links above cover the headline sections.
+
+Running `/joyride-studio init` in any React + Vite repo installs and wires up:
 
 | Piece | What it does |
 |---|---|
-| **Tour runtime** (`src/tour/`) | React provider, `?` replay button, custom Joyride tooltip themed to your repo's design system, route→tour registry |
-| **In-browser capture inspector** (`src/components/dev/`) | Floating dev toolbar (⌘⇧U) to pick any element on-screen and turn it into a tour step |
+| **Tour runtime** (`src/tour/`) | React provider, `?` replay button, custom Joyride tooltip themed to your repo's design system, route → tour registry |
+| **Capture inspector** (`src/components/dev/`) | Floating dev toolbar (⌘⇧U) — click any element on screen to turn it into a tour step |
 | **Vite dev plugin** (`vite-tour-plugin.ts`) | REST endpoints the inspector POSTs captures to; persists them as JSON |
 | **Capture storage** (`.tour-flow/`) | Per-screen JSON files, committed to the repo, versionable |
 
@@ -74,25 +98,48 @@ Not yet supported in v1: **Next.js, CRA, webpack-only setups.**
 
 ---
 
-## How it works (30-second read)
+## How it works
 
-```
-┌──────────────────────┐      ┌──────────────────────┐      ┌──────────────────────┐
-│ 1.                   |      |                      |      |                      |
-|/joyride-studio init  │  →   │ 2. Capture screens   │  →   │ 3. /joyride-studio   │
-│                      │      │                      │      │                      │
-│ • Detect design sys  │      │ • ⌘⇧U opens toolbar  │      │ • Inject data-tour   │
-│ • Install Joyride    │      │ • Click elements     │      │   -id into source    │
-│ • Copy template      │      │ • Fill title/body    │      │ • Generate step file │
-│ • Regen tooltip to   │      │ • Save → JSON file   │      │   per screen         │
-│   match UI library   │      │                      │      │ • Update registry    │
-│ • Wire TourProvider  │      │                      │      │ • Remove inspector   │
-│                      │      │                      │      │   mount              │
-└──────────────────────┘      └──────────────────────┘      └──────────────────────┘
-         once                    repeat per screen                after each batch
+```mermaid
+flowchart LR
+  subgraph once[" Once per repo "]
+    direction TB
+    A1[/joyride-studio init/] --> A2[Detect design system<br/>install react-joyride<br/>copy template<br/>regen tooltip + button<br/>wire TourProvider]
+  end
+
+  subgraph repeat[" Repeat per screen "]
+    direction TB
+    B1[Cmd-Shift-U toolbar] --> B2[Click element<br/>fill title + body] --> B3[(.tour-flow/<br/>screens/*.json)]
+  end
+
+  subgraph build[" After each batch "]
+    direction TB
+    C1[/joyride-studio/] --> C2[Inject data-tour-id<br/>generate step files<br/>update registry<br/>remove inspector mount]
+  end
+
+  once --> repeat --> build --> done([Wired tour, themed to your UI])
+
+  style A1 fill:#dbeafe,stroke:#3b82f6,color:#1e3a8a
+  style B1 fill:#fef3c7,stroke:#f59e0b,color:#78350f
+  style C1 fill:#fde68a,stroke:#d97706,color:#78350f
+  style done fill:#dcfce7,stroke:#16a34a,color:#14532d
 ```
 
-Under the hood, clicked elements are identified via React's internal `_debugStack` (React 19) or `_debugSource` (React 18) — this is how the toolbar can turn a click into a `fileName:lineNumber` pointing at the real JSX. The build step uses this plus the captured class names to inject a stable `data-tour-id` attribute into the right component.
+Under the hood: clicked elements are identified via React's internal `_debugStack` (React 19) or `_debugSource` (React 18) — that's how the toolbar can turn a click into a `fileName:lineNumber` pointing at the real JSX. The build step uses this plus the captured class names to inject a stable `data-tour-id` attribute into the right component.
+
+---
+
+## Every Joyride knob, in one panel
+
+The Settings tab exposes every option react-joyride ships, organised the same way as their own [playground](https://docs.react-joyride.com), plus two Joyride Studio additions on top: **Positioning Stability** (floating-ui `autoUpdate` + an opt-in `MutationObserver`) and **Mobile** (viewport-aware overrides).
+
+<p align="center">
+  <img src="./docs/screenshots/settings-panel.png" alt="Settings panel showing all 11 categories" width="380" />
+</p>
+
+Changes are debounced and PUT to `.tour-flow/config.json` via the Vite plugin. The file is committable — your config travels with the tour.
+
+---
 
 ---
 
@@ -185,6 +232,10 @@ During `init` the skill asks where tours should be discoverable after a new user
 | **Sidebar / settings item** | Same as above but in a sidebar or settings panel | Power-user / docs surface |
 | **Manual** | Nothing auto-mounted. You render your own trigger via `useAvailableTours()` | You want full control over placement + styling |
 
+<p align="center">
+  <img src="./docs/screenshots/replay-menu.png" alt="Default ? button with per-route tour menu" width="420" />
+</p>
+
 For custom placements, `useAvailableTours()` is the single source of truth:
 
 ```tsx
@@ -276,6 +327,11 @@ Navigate to the screen you want to build a tour for, then:
 2. **Click "Pick / create a screen"**
    - First time: fill a screen ID (e.g. `landing.hero`) and a description
    - Returning: pick from existing screens
+
+<p align="center">
+  <img src="./docs/screenshots/capture-pick-screen.png" alt="Pick or create a screen" width="480" />
+</p>
+
 3. **Click "+ Add step"**
    - Toolbar button turns orange: `◉ Click an element…`
    - Move your mouse over the app; elements get a blue outline as you hover
@@ -284,6 +340,11 @@ Navigate to the screen you want to build a tour for, then:
 5. **Fill the form, click "Save step"**
    - Step lands in `.tour-flow/screens/<screenId>.json`
    - Now listed in the toolbar; you can edit, reorder with ↑↓, or delete
+
+<p align="center">
+  <img src="./docs/screenshots/capture-active-screen.png" alt="Active screen card with Add step" width="480" />
+</p>
+
 6. **Repeat** for as many steps as you want on this screen
 7. **"Switch screen"** to capture a different screen (e.g. `editor.default` on `/presentation/*`)
 
@@ -314,6 +375,21 @@ location.reload()
 ```
 
 If `autoStart` evaluates truthy, the tour auto-plays. Otherwise hit the `?` button bottom-left to replay.
+
+A finished tour, played in a real app, looks like this — note the same Back/Skip/Next progression on every step, themed to your design tokens:
+
+<table>
+  <tr>
+    <td><img src="./docs/screenshots/tour-step-1.png" alt="Step 1 of 3" /></td>
+    <td><img src="./docs/screenshots/tour-step-2.png" alt="Step 2 of 3 with Back" /></td>
+    <td><img src="./docs/screenshots/tour-step-3.png" alt="Step 3 of 3 with Done" /></td>
+  </tr>
+  <tr>
+    <td align="center"><sub><b>Step 1</b> — first step, Skip + Next</sub></td>
+    <td align="center"><sub><b>Step 2</b> — Back appears once you advance</sub></td>
+    <td align="center"><sub><b>Step 3</b> — Done on the final step</sub></td>
+  </tr>
+</table>
 
 ---
 
@@ -348,6 +424,10 @@ Each captured screen has:
 
 Visible in the capture form popup:
 
+<p align="center">
+  <img src="./docs/screenshots/step-form-filled.png" alt="Step form, behavior flags collapsed" width="320" />
+</p>
+
 | Field | Purpose |
 |---|---|
 | **Title** | Tooltip heading (required) |
@@ -360,6 +440,10 @@ Visible in the capture form popup:
 ### Behavior flags
 
 Under the **"Behavior flags"** disclosure in the form. Each maps to a Joyride v3 Step field at build time.
+
+<p align="center">
+  <img src="./docs/screenshots/step-form-behavior-flags.png" alt="Step form with behavior flags expanded" width="380" />
+</p>
 
 | Flag | When to use |
 |---|---|

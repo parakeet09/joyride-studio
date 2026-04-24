@@ -1,0 +1,24 @@
+{
+  "name": "@joyride-studio/template",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Reference template that joyride-studio copies into a target repo. Not published to npm — exists so CI can type-check the template and contributors get IDE intellisense.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-joyride": "^3.0.0",
+    "react-router-dom": "^7.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "typescript": "^5.6.0",
+    "vite": "^7.0.0"
+  }
+}

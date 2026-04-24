@@ -1,0 +1,21 @@
+node_modules/
+dist/
+build/
+.DS_Store
+.env
+.env.local
+.env.*.local
+
+# Editor / OS
+.idea/
+.vscode/
+*.swp
+*~
+
+# Test artifacts
+coverage/
+*.log
+
+# pnpm / yarn / npm — keep lockfiles; ignore caches only
+.npm/
+.pnpm-store/

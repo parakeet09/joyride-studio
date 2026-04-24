@@ -78,7 +78,8 @@ Not yet supported in v1: **Next.js, CRA, webpack-only setups.**
 
 ```
 ┌──────────────────────┐      ┌──────────────────────┐      ┌──────────────────────┐
-│ 1. /joyride-studio init  │  →   │ 2. Capture screens   │  →   │ 3. /joyride-studio       │
+│ 1.                   |      |                      |      |                      |
+|/joyride-studio init  │  →   │ 2. Capture screens   │  →   │ 3. /joyride-studio   │
 │                      │      │                      │      │                      │
 │ • Detect design sys  │      │ • ⌘⇧U opens toolbar  │      │ • Inject data-tour   │
 │ • Install Joyride    │      │ • Click elements     │      │   -id into source    │
